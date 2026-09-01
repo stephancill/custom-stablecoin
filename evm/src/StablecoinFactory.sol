@@ -7,8 +7,8 @@ import {
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-import {IB20Factory} from "base-std/interfaces/IB20Factory.sol";
 import {B20FactoryLib} from "base-std/lib/B20FactoryLib.sol";
+import {IB20Factory} from "base-std/interfaces/IB20Factory.sol";
 import {StdPrecompiles} from "base-std/StdPrecompiles.sol";
 
 /// @title StablecoinFactory
@@ -80,6 +80,10 @@ contract StablecoinFactory is Initializable, AccessControlDefaultAdminRulesUpgra
     /// `(STABLECOIN, address(this), salt)`, so only this factory can issue tokens to the predicted
     /// addresses. `stablecoinAdmin` receives `DEFAULT_ADMIN_ROLE` on the new token; all other roles
     /// are granted by that admin post-issuance. Decimals are fixed at 6 by the STABLECOIN variant.
+    ///
+    /// @dev Reverts with `AccessControlUnauthorizedAccount` when the caller does not hold `DEPLOYER_ROLE`.
+    /// @dev Reverts with the bubbled `IB20Factory` reason when creation fails (e.g. `TokenAlreadyExists`
+    /// on salt reuse, or `MissingRequiredField` / `InvalidCurrency` for an invalid currency code).
     ///
     /// @param name           Token name.
     /// @param symbol         Token symbol.
