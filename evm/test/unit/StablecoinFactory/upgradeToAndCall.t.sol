@@ -15,7 +15,7 @@ contract StablecoinFactoryUpgradeToAndCallTest is StablecoinFactoryTest {
     /// @dev Access control: _authorizeUpgrade is gated on onlyRole(DEFAULT_ADMIN_ROLE)
     function test_upgradeToAndCall_revert_unauthorized(address caller) public {
         vm.assume(caller != admin);
-        StablecoinFactory newImpl = new StablecoinFactory();
+        StablecoinFactory newImpl = new StablecoinFactory(address(beacon));
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector, caller, factory.DEFAULT_ADMIN_ROLE()
@@ -30,7 +30,7 @@ contract StablecoinFactoryUpgradeToAndCallTest is StablecoinFactoryTest {
     /// @notice Verifies the admin can upgrade the factory implementation and role state is preserved
     /// @dev UUPS: DEFAULT_ADMIN upgrades impl; DEPLOYER_ROLE persists in proxy storage across the upgrade
     function test_upgradeToAndCall_success_preservesState() public {
-        StablecoinFactory newImpl = new StablecoinFactory();
+        StablecoinFactory newImpl = new StablecoinFactory(address(beacon));
         vm.prank(admin);
         factory.upgradeToAndCall(address(newImpl), "");
 
