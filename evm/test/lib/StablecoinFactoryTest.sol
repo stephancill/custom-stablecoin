@@ -46,13 +46,18 @@ contract StablecoinFactoryTest is BaseTest {
 
     // ── Helpers ───────────────────────────────────────────────────────────────────────────
 
-    /// @dev Issues a stablecoin via the factory with the given salt and default token params.
+    /// @dev Issues a stablecoin via the factory with the given salt, default token params, and no initCalls.
     function _deploy(bytes32 salt) internal returns (address) {
-        vm.prank(deployer);
-        return factory.deploy(TOKEN_NAME, TOKEN_SYMBOL, TOKEN_CURRENCY, stablecoinAdmin, salt);
+        return _deploy(new bytes[](0), salt);
     }
 
-    /// @dev Issues a stablecoin using the constant DEPLOY_SALT.
+    /// @dev Issues a stablecoin via the factory with the given bootstrap initCalls and salt.
+    function _deploy(bytes[] memory initCalls, bytes32 salt) internal returns (address) {
+        vm.prank(deployer);
+        return factory.deploy(TOKEN_NAME, TOKEN_SYMBOL, TOKEN_CURRENCY, stablecoinAdmin, initCalls, salt);
+    }
+
+    /// @dev Issues a stablecoin using the constant DEPLOY_SALT and no initCalls.
     function _deploy() internal returns (address) {
         return _deploy(DEPLOY_SALT);
     }

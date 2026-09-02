@@ -3,8 +3,13 @@ pragma solidity 0.8.30;
 
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 
+import {IB20} from "base-std/interfaces/IB20.sol";
 import {IB20Factory} from "base-std/interfaces/IB20Factory.sol";
 import {IB20Stablecoin} from "base-std/interfaces/IB20Stablecoin.sol";
+import {B20Constants} from "base-std/lib/B20Constants.sol";
+import {B20FactoryLib} from "base-std/lib/B20FactoryLib.sol";
+
+import {PolicyRegistryConstants} from "base-std-test/lib/mocks/MockPolicyRegistry.sol";
 
 import {StablecoinFactory} from "src/StablecoinFactory.sol";
 
@@ -25,7 +30,7 @@ contract StablecoinFactoryDeployTest is StablecoinFactoryTest {
             )
         );
         vm.prank(caller);
-        factory.deploy(TOKEN_NAME, TOKEN_SYMBOL, TOKEN_CURRENCY, stablecoinAdmin, DEPLOY_SALT);
+        factory.deploy(TOKEN_NAME, TOKEN_SYMBOL, TOKEN_CURRENCY, stablecoinAdmin, new bytes[](0), DEPLOY_SALT);
     }
 
     /// @notice Verifies deploy reverts when the same salt is used twice
@@ -37,14 +42,42 @@ contract StablecoinFactoryDeployTest is StablecoinFactoryTest {
         _deploy(salt);
     }
 
+    /// @notice Verifies a reverting initCall aborts the whole deploy, bubbling the inner reason
+    /// @dev Bootstrap bundle: an updatePolicy to a non-existent policy bubbles PolicyNotFound
+    function test_deploy_revert_initCallFails(uint64 seed) public {
+        uint64 missingPolicyId = _wellFormedUncreatedPolicyId(seed);
+        bytes[] memory initCalls = new bytes[](1);
+        initCalls[0] = B20FactoryLib.encodeUpdatePolicy(B20Constants.TRANSFER_SENDER_POLICY, missingPolicyId);
+        vm.expectRevert(abi.encodeWithSelector(IB20.PolicyNotFound.selector, missingPolicyId));
+        _deploy(initCalls, DEPLOY_SALT);
+    }
+
     // ── Happy paths ───────────────────────────────────────────────────────────────────────
 
     /// @notice Verifies deploy returns an address with contract code
     /// @dev State: the returned address must have code.length > 0 after issuance
     function test_deploy_success_issuesToken(string calldata name, string calldata symbol) public {
         vm.prank(deployer);
-        address token = factory.deploy(name, symbol, TOKEN_CURRENCY, stablecoinAdmin, DEPLOY_SALT);
+        address token = factory.deploy(name, symbol, TOKEN_CURRENCY, stablecoinAdmin, new bytes[](0), DEPLOY_SALT);
         assertGt(token.code.length, 0);
+    }
+
+    /// @notice Verifies the compliance initCalls bundle is executed on the new token during bootstrap
+    /// @dev Bootstrap bundle: updateSupplyCap + updatePolicy are applied before the privileged window closes
+    function test_deploy_success_runsInitCalls(uint256 supplyCap) public {
+        supplyCap = bound(supplyCap, 0, B20Constants.MAX_SUPPLY_CAP);
+
+        bytes[] memory initCalls = new bytes[](2);
+        initCalls[0] = B20FactoryLib.encodeUpdateSupplyCap(supplyCap);
+        initCalls[1] = B20FactoryLib.encodeUpdatePolicy(
+            B20Constants.TRANSFER_SENDER_POLICY, PolicyRegistryConstants.ALWAYS_BLOCK_ID
+        );
+
+        address token = _deploy(initCalls, DEPLOY_SALT);
+
+        IB20 sc = IB20(token);
+        assertEq(sc.supplyCap(), supplyCap);
+        assertEq(sc.policyId(B20Constants.TRANSFER_SENDER_POLICY), PolicyRegistryConstants.ALWAYS_BLOCK_ID);
     }
 
     /// @notice Verifies deploy emits StablecoinDeployed with the correct parameters
@@ -75,7 +108,7 @@ contract StablecoinFactoryDeployTest is StablecoinFactoryTest {
     /// @dev Integration: the STABLECOIN create params must be forwarded to the precompile correctly
     function test_deploy_success_initializesStablecoin(string calldata name, string calldata symbol) public {
         vm.prank(deployer);
-        address token = factory.deploy(name, symbol, TOKEN_CURRENCY, stablecoinAdmin, DEPLOY_SALT);
+        address token = factory.deploy(name, symbol, TOKEN_CURRENCY, stablecoinAdmin, new bytes[](0), DEPLOY_SALT);
         IB20Stablecoin sc = IB20Stablecoin(token);
         assertEq(sc.name(), name);
         assertEq(sc.symbol(), symbol);
@@ -88,7 +121,7 @@ contract StablecoinFactoryDeployTest is StablecoinFactoryTest {
     function test_deploy_success_setsStablecoinAdmin(address stablecoinAdmin_, bytes32 salt) public {
         vm.assume(stablecoinAdmin_ != address(0));
         vm.prank(deployer);
-        address token = factory.deploy(TOKEN_NAME, TOKEN_SYMBOL, TOKEN_CURRENCY, stablecoinAdmin_, salt);
+        address token = factory.deploy(TOKEN_NAME, TOKEN_SYMBOL, TOKEN_CURRENCY, stablecoinAdmin_, new bytes[](0), salt);
         IB20Stablecoin sc = IB20Stablecoin(token);
         assertTrue(sc.hasRole(sc.DEFAULT_ADMIN_ROLE(), stablecoinAdmin_));
     }

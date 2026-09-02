@@ -81,14 +81,21 @@ contract StablecoinFactory is Initializable, AccessControlDefaultAdminRulesUpgra
     /// addresses. `stablecoinAdmin` receives `DEFAULT_ADMIN_ROLE` on the new token; all other roles
     /// are granted by that admin post-issuance. Decimals are fixed at 6 by the STABLECOIN variant.
     ///
+    /// @dev `initCalls` execute on the new token during the creation bootstrap window, where
+    /// factory-originated calls bypass role gates and the transfer-side policy gates (though
+    /// `MINT_RECEIVER_POLICY` stays enforced and pause is never bypassed); use them to wire the
+    /// compliance policy scopes, supply cap, and role grants. Encode them with {B20FactoryLib}.
+    ///
     /// @dev Reverts with `AccessControlUnauthorizedAccount` when the caller does not hold `DEPLOYER_ROLE`.
     /// @dev Reverts with the bubbled `IB20Factory` reason when creation fails (e.g. `TokenAlreadyExists`
     /// on salt reuse, or `MissingRequiredField` / `InvalidCurrency` for an invalid currency code).
+    /// @dev Reverts with `InitCallFailed` (or the bubbled inner reason) when any `initCalls` entry reverts.
     ///
     /// @param name           Token name.
     /// @param symbol         Token symbol.
     /// @param currency       Immutable currency code; uppercase ASCII `A`-`Z` only.
     /// @param stablecoinAdmin The initial default admin of the stablecoin.
+    /// @param initCalls      Bootstrap calls dispatched on the new token after its identity is sealed.
     /// @param salt           Salt for deterministic address derivation.
     ///
     /// @return stablecoin The address of the newly issued stablecoin.
@@ -97,15 +104,14 @@ contract StablecoinFactory is Initializable, AccessControlDefaultAdminRulesUpgra
         string calldata symbol,
         string calldata currency,
         address stablecoinAdmin,
+        bytes[] calldata initCalls,
         bytes32 salt
     ) external onlyRole(DEPLOYER_ROLE) returns (address stablecoin) {
         bytes memory params = B20FactoryLib.encodeStablecoinCreateParams({
             name: name, symbol: symbol, initialAdmin: stablecoinAdmin, currency: currency
         });
         stablecoin = StdPrecompiles.B20_FACTORY
-            .createB20({
-                variant: IB20Factory.B20Variant.STABLECOIN, salt: salt, params: params, initCalls: new bytes[](0)
-            });
+            .createB20({variant: IB20Factory.B20Variant.STABLECOIN, salt: salt, params: params, initCalls: initCalls});
         emit StablecoinDeployed({
             stablecoin: stablecoin,
             name: name,
