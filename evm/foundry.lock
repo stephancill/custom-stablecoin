@@ -1,8 +1,8 @@
 {
   "lib/base-std": {
     "tag": {
-      "name": "v1.0.0",
-      "rev": "4658f1b7b54ccc61b036adc32830594018ea507e"
+      "name": "v1.1.0",
+      "rev": "bbfb352e9fe2f67bf6ca33ea4d9a7f2fe0cca20d"
     }
   },
   "lib/forge-std": {
