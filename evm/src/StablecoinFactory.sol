@@ -218,7 +218,7 @@ contract StablecoinFactory is Initializable, AccessControlDefaultAdminRulesUpgra
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                     PRIVATE FUNCTIONS                      */
-    /*.•°:°.´+˚.*°.˚:*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
     /// @notice Builds the full creation bytecode for an {MutableBeaconProxy} that
     /// initializes a {Stablecoin} with the given parameters.
