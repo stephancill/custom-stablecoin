@@ -55,19 +55,9 @@ contract StablecoinFactory is Initializable, AccessControlDefaultAdminRulesUpgra
 
     /// @notice Emitted when a new B-20 stablecoin is issued via {deployB20}.
     /// @param stablecoin      The address of the new stablecoin.
-    /// @param name            The token name.
-    /// @param symbol          The token symbol.
-    /// @param currency        The immutable currency code (uppercase ASCII).
     /// @param stablecoinAdmin The initial default admin of the stablecoin.
     /// @param salt            The salt used for deterministic address derivation.
-    event B20StablecoinDeployed(
-        address indexed stablecoin,
-        string name,
-        string symbol,
-        string currency,
-        address indexed stablecoinAdmin,
-        bytes32 indexed salt
-    );
+    event B20StablecoinDeployed(address indexed stablecoin, address indexed stablecoinAdmin, bytes32 indexed salt);
 
     /// @notice Thrown when the factory is constructed without a beacon address.
     error BeaconNotSet();
@@ -166,14 +156,7 @@ contract StablecoinFactory is Initializable, AccessControlDefaultAdminRulesUpgra
         });
         stablecoin = StdPrecompiles.B20_FACTORY
             .createB20({variant: IB20Factory.B20Variant.STABLECOIN, salt: salt, params: params, initCalls: initCalls});
-        emit B20StablecoinDeployed({
-            stablecoin: stablecoin,
-            name: name,
-            symbol: symbol,
-            currency: currency,
-            stablecoinAdmin: stablecoinAdmin,
-            salt: salt
-        });
+        emit B20StablecoinDeployed({stablecoin: stablecoin, stablecoinAdmin: stablecoinAdmin, salt: salt});
     }
 
     /// @notice Returns the deterministic address for a legacy beacon-proxy stablecoin with the given
@@ -198,9 +181,6 @@ contract StablecoinFactory is Initializable, AccessControlDefaultAdminRulesUpgra
 
     /// @notice Returns the deterministic address a {deployB20} with the given `salt` would assign,
     /// whether or not the token has been issued.
-    ///
-    /// @dev The address depends only on `(STABLECOIN, address(this), salt)` — not on the token's
-    /// name, symbol, currency, or admin.
     ///
     /// @param salt The salt for deterministic address derivation.
     ///

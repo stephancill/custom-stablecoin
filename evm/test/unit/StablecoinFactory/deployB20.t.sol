@@ -84,14 +84,9 @@ contract StablecoinFactoryDeployB20Test is StablecoinFactoryTest {
     /// @dev Event integrity: all emitted fields must match the deploy arguments
     function test_deployB20_success_emitsB20StablecoinDeployed(bytes32 salt) public {
         address predicted = _computeB20Address(salt);
-        vm.expectEmit(true, true, true, true);
+        vm.expectEmit(true, true, true, true, address(factory));
         emit StablecoinFactory.B20StablecoinDeployed({
-            stablecoin: predicted,
-            name: TOKEN_NAME,
-            symbol: TOKEN_SYMBOL,
-            currency: TOKEN_CURRENCY,
-            stablecoinAdmin: stablecoinAdmin,
-            salt: salt
+            stablecoin: predicted, stablecoinAdmin: stablecoinAdmin, salt: salt
         });
         _deployB20(salt);
     }
