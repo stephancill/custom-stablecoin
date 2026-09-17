@@ -28,15 +28,18 @@ contract StablecoinFactoryUpgradeToAndCallTest is StablecoinFactoryTest {
     // ── Happy paths ───────────────────────────────────────────────────────────────────────
 
     /// @notice Verifies the admin can upgrade the factory implementation and role state is preserved
-    /// @dev UUPS: DEFAULT_ADMIN upgrades impl; DEPLOYER_ROLE persists in proxy storage across the upgrade
+    /// @dev UUPS: DEFAULT_ADMIN upgrades impl; DEPLOYER_ROLE persists in proxy storage, so both the legacy
+    /// and B-20 issuance paths keep working across the upgrade
     function test_upgradeToAndCall_success_preservesState() public {
         StablecoinFactory newImpl = new StablecoinFactory(address(beacon));
         vm.prank(admin);
         factory.upgradeToAndCall(address(newImpl), "");
 
-        // Role state persists across the impl swap, so the deployer can still issue tokens.
+        // Role state persists across the impl swap, so the deployer can still issue via both paths.
         assertTrue(factory.hasRole(factory.DEPLOYER_ROLE(), deployer));
-        address token = _deploy();
-        assertGt(token.code.length, 0);
+        address legacyToken = _deploy();
+        assertGt(legacyToken.code.length, 0);
+        address b20Token = _deployB20(DEPLOY_SALT);
+        assertGt(b20Token.code.length, 0);
     }
 }

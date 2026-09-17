@@ -56,6 +56,9 @@ contract StablecoinFactory is Initializable, AccessControlDefaultAdminRulesUpgra
     /// @notice Thrown when the factory is constructed without a beacon address.
     error BeaconNotSet();
 
+    /// @notice Thrown when deployB20 is called with a zero stablecoin admin.
+    error StablecoinAdminRequired();
+
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                        CONSTRUCTOR                         */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
@@ -113,7 +116,7 @@ contract StablecoinFactory is Initializable, AccessControlDefaultAdminRulesUpgra
     }
 
     /// @notice Issues a new B-20 STABLECOIN token via the {IB20Factory} precompile.
-    /// @dev Decimals are fixed at 6.
+    /// @dev Decimals are fixed at 6. Reverts with `StablecoinAdminRequired` when `stablecoinAdmin` is zero.
     ///
     /// @param name           Token name.
     /// @param symbol         Token symbol.
@@ -129,6 +132,8 @@ contract StablecoinFactory is Initializable, AccessControlDefaultAdminRulesUpgra
         address stablecoinAdmin,
         bytes32 salt
     ) external onlyRole(DEPLOYER_ROLE) returns (address stablecoin) {
+        if (stablecoinAdmin == address(0)) revert StablecoinAdminRequired();
+
         bytes memory params = B20FactoryLib.encodeStablecoinCreateParams({
             name: name, symbol: symbol, initialAdmin: stablecoinAdmin, currency: currency
         });

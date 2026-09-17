@@ -28,6 +28,14 @@ contract StablecoinFactoryDeployB20Test is StablecoinFactoryTest {
         factory.deployB20(TOKEN_NAME, TOKEN_SYMBOL, TOKEN_CURRENCY, stablecoinAdmin, DEPLOY_SALT);
     }
 
+    /// @notice Verifies deployB20 reverts when the stablecoin admin is the zero address
+    /// @dev Guard: an adminless B-20 would be permanently unconfigurable, matching the legacy path's rejection
+    function test_deployB20_revert_zeroAdmin(bytes32 salt) public {
+        vm.expectRevert(StablecoinFactory.StablecoinAdminRequired.selector);
+        vm.prank(deployer);
+        factory.deployB20(TOKEN_NAME, TOKEN_SYMBOL, TOKEN_CURRENCY, address(0), salt);
+    }
+
     /// @notice Verifies deployB20 reverts when the same salt is used twice
     /// @dev Deterministic address collision: issuing to the same address twice must revert
     function test_deployB20_revert_saltReused(bytes32 salt) public {

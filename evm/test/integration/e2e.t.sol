@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity 0.8.30;
 
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+
 import {ERC3009Upgradeable} from "src/lib/ERC3009Upgradeable.sol";
 import {Stablecoin} from "src/Stablecoin.sol";
+import {StablecoinFactory} from "src/StablecoinFactory.sol";
 
 import {StablecoinTest} from "test/lib/StablecoinTest.sol";
 
@@ -117,14 +120,24 @@ contract StablecoinE2ETest is StablecoinTest {
         assertEq(stablecoin.currentMintLimit(minter), limitA - amountA);
     }
 
-    /// @notice Verifies multiple independently-deployed stablecoins are fully independent
+    /// @notice Verifies multiple stablecoins deployed from the factory are fully independent
     /// @dev Cross-contract isolation: pausing or blocklisting on token A must have no effect on token B
-    function test_e2e_multipleStablecoinsIndependent() public {
+    function test_e2e_multipleStablecoinsFromFactory(bytes32 salt1, bytes32 salt2) public {
+        vm.assume(salt1 != salt2);
+
+        address localDeployer = makeAddr("localDeployer");
         address localAdmin = makeAddr("localAdmin");
 
-        // Deploy two independent stablecoin proxies over the shared beacon
-        address addrA = _deployStablecoin(localAdmin);
-        address addrB = _deployStablecoin(localAdmin);
+        // Deploy a factory backed by the same beacon
+        StablecoinFactory factoryImpl = new StablecoinFactory(address(beacon));
+        bytes memory initData = abi.encodeCall(StablecoinFactory.initialize, (admin, 0, localDeployer));
+        StablecoinFactory localFactory = StablecoinFactory(address(new ERC1967Proxy(address(factoryImpl), initData)));
+
+        // Deploy two stablecoins through the factory's legacy path
+        vm.prank(localDeployer);
+        address addrA = localFactory.deploy(TOKEN_NAME, TOKEN_SYMBOL, TOKEN_DECIMALS, localAdmin, salt1);
+        vm.prank(localDeployer);
+        address addrB = localFactory.deploy(TOKEN_NAME, TOKEN_SYMBOL, TOKEN_DECIMALS, localAdmin, salt2);
         assertNotEq(addrA, addrB);
 
         Stablecoin scA = Stablecoin(addrA);
