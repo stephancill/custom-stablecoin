@@ -75,19 +75,14 @@ contract StablecoinFactoryTest is BaseTest {
 
     // ── B-20 helpers ──────────────────────────────────────────────────────────────────────
 
-    /// @dev Issues a B-20 stablecoin with the given salt, default token params, and no initCalls.
+    /// @dev Issues a B-20 stablecoin with the given salt and default token parameters.
     function _deployB20(bytes32 salt) internal returns (address) {
-        return _deployB20(new bytes[](0), salt);
-    }
-
-    /// @dev Issues a B-20 stablecoin with the given bootstrap initCalls and salt.
-    function _deployB20(bytes[] memory initCalls, bytes32 salt) internal returns (address) {
         vm.prank(deployer);
-        return factory.deployB20(TOKEN_NAME, TOKEN_SYMBOL, TOKEN_CURRENCY, stablecoinAdmin, initCalls, salt);
+        return factory.deployB20(TOKEN_NAME, TOKEN_SYMBOL, TOKEN_CURRENCY, stablecoinAdmin, salt);
     }
 
     /// @dev Computes the expected B-20 address for the given salt.
-    function _computeB20Address(bytes32 salt) internal view returns (address) {
-        return factory.computeB20Address(salt);
+    function _computeAddressB20(bytes32 salt) internal view returns (address) {
+        return factory.computeAddressB20(TOKEN_NAME, TOKEN_SYMBOL, TOKEN_CURRENCY, stablecoinAdmin, salt);
     }
 }
