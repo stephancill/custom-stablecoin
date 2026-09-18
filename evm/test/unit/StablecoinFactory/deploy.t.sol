@@ -26,6 +26,14 @@ contract StablecoinFactoryDeployTest is StablecoinFactoryTest {
         factory.deploy(TOKEN_NAME, TOKEN_SYMBOL, TOKEN_DECIMALS, stablecoinAdmin, DEPLOY_SALT);
     }
 
+    /// @notice Verifies deploy reverts when the stablecoin admin is the zero address
+    /// @dev Guard: every stablecoin deployment must retain an account that can configure the token
+    function test_deploy_revert_zeroAdmin(bytes32 salt) public {
+        vm.expectRevert(StablecoinFactory.StablecoinAdminRequired.selector);
+        vm.prank(deployer);
+        factory.deploy(TOKEN_NAME, TOKEN_SYMBOL, TOKEN_DECIMALS, address(0), salt);
+    }
+
     /// @notice Verifies deploy reverts when the same salt is used twice
     /// @dev CREATE2 collision: deploying to the same address twice must revert
     function test_deploy_revert_saltReused(bytes32 salt) public {

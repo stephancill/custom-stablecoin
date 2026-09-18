@@ -9,6 +9,7 @@ import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.s
 import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import {B20FactoryLib} from "base-std/lib/B20FactoryLib.sol";
+import {IB20} from "base-std/interfaces/IB20.sol";
 import {IB20Factory} from "base-std/interfaces/IB20Factory.sol";
 import {StdPrecompiles} from "base-std/StdPrecompiles.sol";
 
@@ -56,7 +57,7 @@ contract StablecoinFactory is Initializable, AccessControlDefaultAdminRulesUpgra
     /// @notice Thrown when the factory is constructed without a beacon address.
     error BeaconNotSet();
 
-    /// @notice Thrown when deployB20 is called with a zero stablecoin admin.
+    /// @notice Thrown when a stablecoin deployment uses a zero admin.
     error StablecoinAdminRequired();
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
@@ -103,6 +104,8 @@ contract StablecoinFactory is Initializable, AccessControlDefaultAdminRulesUpgra
         onlyRole(DEPLOYER_ROLE)
         returns (address stablecoin)
     {
+        if (stablecoinAdmin == address(0)) revert StablecoinAdminRequired();
+
         stablecoin =
             Create2.deploy({amount: 0, salt: salt, bytecode: _bytecode(name, symbol, decimals, stablecoinAdmin)});
         emit StablecoinDeployed({
@@ -150,7 +153,7 @@ contract StablecoinFactory is Initializable, AccessControlDefaultAdminRulesUpgra
             stablecoin: stablecoin,
             name: name,
             symbol: symbol,
-            decimals: 6,
+            decimals: IB20(stablecoin).decimals(),
             stablecoinAdmin: stablecoinAdmin,
             salt: salt
         });
